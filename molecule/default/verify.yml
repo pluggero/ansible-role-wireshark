@@ -1,0 +1,98 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+
+  vars:
+    ansible_user: ansible
+
+  vars_files:
+    - ../../defaults/main.yml
+
+  tasks:
+    - name: Check installed version
+      ansible.builtin.include_tasks: "../../tasks/noauto_check_installed_version.yml"
+
+    - name: Find wireshark binary path
+      ansible.builtin.command:
+        cmd: "which wireshark"
+      register: wireshark_binary_path
+      changed_when: false
+
+    - name: Resolve wireshark real path (follow symlinks)
+      ansible.builtin.command:
+        cmd: "readlink -f {{ wireshark_binary_path.stdout }}"
+      register: wireshark_realpath
+      changed_when: false
+      when: wireshark_binary_path.stdout | length > 0
+
+    - name: Verify wireshark binary exists and is executable
+      ansible.builtin.stat:
+        path: "{{ wireshark_realpath.stdout }}"
+      register: wireshark_binary
+      failed_when: not wireshark_binary.stat.exists or not wireshark_binary.stat.executable
+
+    - name: Assert installed version is correct
+      ansible.builtin.assert:
+        that:
+          - "wireshark_installed_version == wireshark_version"
+        fail_msg: "Expected Wireshark version {{ wireshark_version }}, but found {{ wireshark_installed_version }}"
+        success_msg: "Wireshark version {{ wireshark_version }} is correctly installed"
+
+    - name: Get wireshark group members
+      ansible.builtin.getent:
+        database: group
+        key: wireshark
+      register: wireshark_group_info
+      ignore_errors: true
+
+    - name: Verify wireshark users are in wireshark group
+      ansible.builtin.assert:
+        that:
+          - "item in getent_group.wireshark[2].split(',')"
+        fail_msg: "User {{ item }} is not in the wireshark group"
+        success_msg: "User {{ item }} is correctly added to wireshark group"
+      loop: "{{ wireshark_users }}"
+      when:
+        - wireshark_group_info is defined
+        - wireshark_group_info.failed is false
+
+    - name: Verify wireshark configuration directory exists
+      ansible.builtin.stat:
+        path: "{{ wireshark_config_dir }}"
+      register: config_dir
+      failed_when: not config_dir.stat.exists or not config_dir.stat.isdir
+
+    - name: Verify dumpcap capabilities
+      block:
+        - name: Find dumpcap binary path
+          ansible.builtin.command:
+            cmd: "which dumpcap"
+          register: wireshark_dumpcap_binary_path
+          changed_when: false
+
+        - name: Resolve dumpcap real path (follow symlinks)
+          ansible.builtin.command:
+            cmd: "readlink -f {{ wireshark_dumpcap_binary_path.stdout }}"
+          register: wireshark_dumpcap_realpath
+          changed_when: false
+          when: wireshark_dumpcap_binary_path.stdout | length > 0
+
+        - name: Check dumpcap capabilities
+          ansible.builtin.command:
+            cmd: "getcap {{ wireshark_dumpcap_realpath.stdout }}"
+          register: wireshark_dumpcap_caps
+          changed_when: false
+          failed_when: false
+
+        - name: Debug dumpcap capabilities
+          ansible.builtin.debug:
+            msg: "dumpcap capabilities: {{ wireshark_dumpcap_caps.stdout }}"
+
+        - name: Assert dumpcap has correct capabilities
+          ansible.builtin.assert:
+            that:
+              - "'cap_net_admin,cap_net_raw' in wireshark_dumpcap_caps.stdout"
+            fail_msg: "dumpcap does not have required capabilities for packet capture"
+            success_msg: "dumpcap has correct packet capture capabilities"
+          when: wireshark_dumpcap_caps.rc == 0

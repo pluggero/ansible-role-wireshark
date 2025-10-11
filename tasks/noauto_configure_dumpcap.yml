@@ -1,0 +1,42 @@
+---
+- name: Configure dumpcap network capabilities
+  block:
+    - name: Determine wireshark binary path
+      ansible.builtin.command:
+        cmd: "which dumpcap"
+      register: wireshark_dumpcap_path
+      changed_when: false
+
+    - name: Resolve dumpcap real path (follow symlinks)
+      ansible.builtin.command:
+        cmd: "readlink -f {{ wireshark_dumpcap_path.stdout }}"
+      register: wireshark_dumpcap_realpath
+      changed_when: false
+      when: wireshark_dumpcap_path.stdout | length > 0
+
+    - name: Check if dumpcap exists
+      ansible.builtin.stat:
+        path: "{{ wireshark_dumpcap_realpath.stdout }}"
+      register: wireshark_dumpcap_stat
+      when: wireshark_dumpcap_realpath.stdout is defined
+
+    - name: Debug dumpcap path
+      ansible.builtin.debug:
+        msg: "dumpcap real path: {{ wireshark_dumpcap_realpath.stdout }}"
+      when: wireshark_dumpcap_stat.stat.exists
+
+    - name: Set CAP_NET_RAW capability on dumpcap
+      community.general.capabilities:
+        path: "{{ wireshark_dumpcap_realpath.stdout }}"
+        capability: cap_net_raw=eip
+        state: present
+      when: wireshark_dumpcap_stat.stat.exists
+      become: true
+
+    - name: Set CAP_NET_ADMIN capability on dumpcap
+      community.general.capabilities:
+        path: "{{ wireshark_dumpcap_realpath.stdout }}"
+        capability: cap_net_admin=eip
+        state: present
+      when: wireshark_dumpcap_stat.stat.exists
+      become: true

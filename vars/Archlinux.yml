@@ -1,0 +1,44 @@
+---
+wireshark_dep_pkgs:
+  - bcg729
+  - brotli
+  - c-ares
+  - glib2
+  - glibc
+  - gnutls
+  - krb5
+  - libcap
+  - libgcrypt
+  - libmaxminddb
+  - libnghttp2
+  - libnl
+  - libpcap
+  - libssh
+  - libxml2
+  - lua53
+  - lz4
+  - minizip
+  - opus
+  - qt6-5compat
+  - qt6-multimedia
+  - qt6-svg
+  - sbc
+  - snappy
+  - spandsp
+  - speexdsp
+  - zlib-ng
+  - zstd
+
+wireshark_build_pkgs:
+  - asciidoctor
+  - cmake
+  - desktop-file-utils
+  - doxygen
+  - git
+  - libxslt
+  - ninja
+  - python
+  - qt6-tools
+
+wireshark_distro_pkgs:
+  - wireshark-qt

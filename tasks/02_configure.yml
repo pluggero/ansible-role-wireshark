@@ -1,0 +1,19 @@
+---
+- name: Configure wireshark
+  block:
+    - name: Ensure config folder exists
+      ansible.builtin.file:
+        path: "{{ wireshark_config_dir }}"
+        state: directory
+        mode: "0755"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      become: true
+
+    - name: Configure wireshark users
+      ansible.builtin.include_tasks:
+        file: noauto_wireshark_users.yml
+
+    - name: Configure dumpcap network capabilities
+      ansible.builtin.include_tasks:
+        file: noauto_configure_dumpcap.yml

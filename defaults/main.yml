@@ -1,0 +1,20 @@
+---
+wireshark_config_dir: "{{ ansible_env.HOME }}/.config/wireshark"
+
+wireshark_version: "4.4.10"
+wireshark_install_method: "dynamic"
+wireshark_force_install: false
+
+wireshark_download_url: "https://www.wireshark.org/download/src/wireshark-{{ wireshark_version }}.tar.xz"
+wireshark_signatures_url: "https://www.wireshark.org/download/src/all-versions/SIGNATURES-{{ wireshark_version }}.txt"
+wireshark_download_dir: "/tmp"
+
+wireshark_install_dir: "/opt/"
+wireshark_install_path: "{{ wireshark_install_dir }}/wireshark-{{ wireshark_version }}"
+
+wireshark_users:
+  - "{{ ansible_user }}"
+
+# Build configuration
+wireshark_cmake_build_type: "RelWithDebInfo"
+wireshark_cmake_options: []

@@ -1,0 +1,33 @@
+---
+- name: Fetch and parse checksum from SIGNATURES file
+  block:
+    - name: Download SIGNATURES file
+      ansible.builtin.get_url:
+        url: "{{ wireshark_signatures_url }}"
+        dest: "{{ wireshark_download_dir }}/SIGNATURES-{{ wireshark_version }}.txt"
+        mode: "0600"
+
+    - name: Extract SHA256 checksum from SIGNATURES file
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          grep 'SHA256(wireshark-{{ wireshark_version }}.tar.xz)'
+          {{ wireshark_download_dir }}/SIGNATURES-{{ wireshark_version }}.txt |
+          sed -n 's/.*SHA256(wireshark-{{ wireshark_version }}.tar.xz)=\([a-f0-9]*\).*/\1/p'
+      args:
+        executable: /bin/bash
+      register: checksum_output
+      changed_when: false
+
+    - name: Set wireshark_download_checksum fact
+      ansible.builtin.set_fact:
+        wireshark_download_checksum: "sha256:{{ checksum_output.stdout }}"
+
+    - name: Debug checksum
+      ansible.builtin.debug:
+        msg: "Fetched checksum: {{ wireshark_download_checksum }}"
+
+    - name: Clean up SIGNATURES file
+      ansible.builtin.file:
+        path: "{{ wireshark_download_dir }}/SIGNATURES-{{ wireshark_version }}.txt"
+        state: absent
