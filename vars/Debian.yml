@@ -1,0 +1,27 @@
+---
+wireshark_dep_pkgs:
+  - libglib2.0-dev
+  - libgcrypt-dev
+  - libpcap-dev
+  - libpcre2-dev
+  - libc-ares-dev
+  - libspeexdsp-dev
+  - libxml2-dev
+  - qt6-base-dev
+  - libqt6svg6-dev
+  - qt6-tools-dev
+  - qt6-tools-dev-tools
+  - qt6-5compat-dev
+  - libssh-dev
+  - gettext
+
+wireshark_build_pkgs:
+  - git
+  - build-essential
+  - cmake
+  - pkg-config
+  - flex
+  - bison
+
+wireshark_distro_pkgs:
+  - wireshark

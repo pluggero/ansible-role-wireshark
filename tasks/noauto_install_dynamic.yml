@@ -1,0 +1,30 @@
+---
+# Dynamic mode first checks which version is available in the package manager
+# If that version satisfies the required version, it installs it via package
+# Otherwise, it installs the required version via source
+- name: Install wireshark OS-specific dynamically
+  block:
+    - name: Check wireshark pkg mgr version
+      ansible.builtin.include_tasks: "{{ task_file }}"
+      with_first_found:
+        - "{{ role_path }}/tasks/noauto_check_pkg_mgr_version_{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ role_path }}/tasks/noauto_check_pkg_mgr_version_{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ role_path }}/tasks/noauto_check_pkg_mgr_version_{{ ansible_distribution }}.yml"
+        - "{{ role_path }}/tasks/noauto_check_pkg_mgr_version_{{ ansible_os_family }}.yml"
+        - "{{ role_path }}/tasks/noauto_check_pkg_mgr_version_{{ ansible_lsb.id }}.yml"
+      loop_control:
+        loop_var: task_file
+
+    - name: Install wireshark from package manager
+      ansible.builtin.include_tasks:
+        file: noauto_install_package.yml
+      when:
+        - wireshark_pkg_mgr_version is defined
+        - wireshark_pkg_mgr_version == wireshark_version
+
+    - name: Install wireshark from source
+      ansible.builtin.include_tasks:
+        file: noauto_install_source.yml
+      when:
+        - wireshark_pkg_mgr_version is not defined
+          or wireshark_pkg_mgr_version != wireshark_version

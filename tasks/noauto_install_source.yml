@@ -1,0 +1,139 @@
+---
+- name: Ensure wireshark is installed
+  block:
+    - name: Import installed wireshark version check
+      ansible.builtin.include_tasks: noauto_check_installed_version.yml
+      when: wireshark_installed_version is not defined
+
+    - name: Force install if the version numbers do not match
+      ansible.builtin.set_fact:
+        wireshark_force_install: true
+      when:
+        - wireshark_installed_version is defined
+        - wireshark_installed_version != wireshark_version
+
+    - name: Install wireshark from source
+      when: wireshark_installed_version is not defined or wireshark_force_install
+      block:
+        - name: Uninstall current wireshark installation
+          ansible.builtin.include_tasks: noauto_uninstall.yml
+          when: wireshark_installed_version is defined and wireshark_installed_version != ""
+
+        - name: Install OS-specific build packages
+          ansible.builtin.include_tasks: "{{ task_file }}"
+          with_first_found:
+            - "{{ role_path }}/tasks/noauto_install_build_{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+            - "{{ role_path }}/tasks/noauto_install_build_{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml"
+            - "{{ role_path }}/tasks/noauto_install_build_{{ ansible_distribution }}.yml"
+            - "{{ role_path }}/tasks/noauto_install_build_{{ ansible_os_family }}.yml"
+            - "{{ role_path }}/tasks/noauto_install_build_{{ ansible_lsb.id }}.yml"
+          loop_control:
+            loop_var: task_file
+
+        - name: Fetch checksum from SIGNATURES file
+          ansible.builtin.include_tasks: noauto_fetch_checksum.yml
+          when: wireshark_download_checksum is not defined
+
+        - name: Download wireshark
+          ansible.builtin.get_url:
+            url: "{{ wireshark_download_url }}"
+            dest: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}.tar.xz"
+            checksum: "{{ wireshark_download_checksum }}"
+            mode: "0600"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+
+        - name: Extract archive
+          ansible.builtin.unarchive:
+            src: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}.tar.xz"
+            dest: "{{ wireshark_download_dir }}/"
+            remote_src: true
+
+        - name: Create build directory
+          ansible.builtin.file:
+            path: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}/build"
+            state: directory
+            mode: "0755"
+
+        - name: Configure wireshark with CMake
+          ansible.builtin.command:
+            cmd: >
+              cmake
+              -DCMAKE_BUILD_TYPE={{ wireshark_cmake_build_type }}
+              -DCMAKE_INSTALL_PREFIX={{ wireshark_install_path }}
+              {{ wireshark_cmake_options | join(' ') }}
+              ..
+            chdir: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}/build"
+            creates: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}/build/Makefile"
+
+        - name: Build wireshark
+          ansible.builtin.command:
+            cmd: make -j{{ ansible_processor_vcpus | default(2) }}
+            chdir: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}/build"
+          changed_when: true
+
+        - name: Install wireshark
+          ansible.builtin.command:
+            cmd: make install
+            chdir: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}/build"
+          changed_when: true
+          become: true
+
+        - name: Create wireshark symlink
+          ansible.builtin.file:
+            src: "{{ wireshark_install_path }}/bin/{{ binary }}"
+            dest: "/usr/local/bin/{{ binary }}"
+            state: link
+            force: true
+            mode: "0755"
+            owner: root
+            group: root
+          loop:
+            - capinfos
+            - captype
+            - dumpcap
+            - editcap
+            - idl2wrs
+            - mergecap
+            - randpkt
+            - rawshark
+            - recordercap
+            - sharkd
+            - text2pcap
+            - tshark
+            - wireshark
+          loop_control:
+            loop_var: binary
+          become: true
+
+    - name: Create desktop icon
+      block:
+        - name: Ensure desktop icon directory exists
+          ansible.builtin.file:
+            path: "/usr/local/share/applications"
+            state: directory
+            mode: "0755"
+            owner: root
+            group: root
+          become: true
+
+        - name: Create desktop icon
+          ansible.builtin.copy:
+            src: "wireshark.desktop"
+            dest: "/usr/local/share/applications/wireshark.desktop"
+            mode: "0644"
+            owner: root
+            group: root
+          become: true
+
+    - name: Cleanup build files
+      block:
+        - name: Remove build directory
+          ansible.builtin.file:
+            path: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}"
+            state: absent
+
+        - name: Remove archive
+          ansible.builtin.file:
+            path: "{{ wireshark_download_dir }}/wireshark-{{ wireshark_version }}.tar.xz"
+            state: absent

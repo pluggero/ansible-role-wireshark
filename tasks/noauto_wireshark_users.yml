@@ -1,0 +1,35 @@
+---
+- name: Ensure wireshark group exists
+  ansible.builtin.group:
+    name: wireshark
+    state: present
+    system: true
+  become: true
+
+- name: Check if users are in the wireshark group
+  ansible.builtin.shell: "id -nG {{ user }} | grep -qw wireshark"
+  register: wireshark_user_in_wireshark_group
+  ignore_errors: true
+  changed_when: false
+  loop: "{{ wireshark_users }}"
+  loop_control:
+    loop_var: user
+
+- name: Debug user in wireshark group results
+  ansible.builtin.debug:
+    msg: "User {{ item.user }} is not in the wireshark group."
+  when: item.rc != 0
+  loop: "{{ wireshark_user_in_wireshark_group.results }}"
+  loop_control:
+    label: "{{ item.user }}"
+
+- name: Add users to the wireshark group if not present
+  ansible.builtin.user:
+    name: "{{ item.user }}"
+    groups: wireshark
+    append: true
+  when: item.rc != 0
+  loop: "{{ wireshark_user_in_wireshark_group.results }}"
+  loop_control:
+    label: "{{ item.user }}"
+  become: true

@@ -1,0 +1,46 @@
+---
+- name: Uninstall wireshark from source
+  block:
+    - name: Find existing wireshark folder in {{ wireshark_install_dir }}
+      ansible.builtin.find:
+        paths: "{{ wireshark_install_dir }}"
+        patterns: "wireshark-*"
+        file_type: directory
+      register: wireshark_install_folder
+
+    - name: Remove existing wireshark installation folder
+      ansible.builtin.file:
+        path: "{{ folder.path }}"
+        state: absent
+      loop: "{{ wireshark_install_folder.files }}"
+      loop_control:
+        loop_var: folder
+      become: true
+
+    - name: Remove wireshark symlink
+      ansible.builtin.file:
+        path: "/usr/local/bin/{{ binary }}"
+        state: absent
+      loop:
+        - capinfos
+        - captype
+        - dumpcap
+        - editcap
+        - idl2wrs
+        - mergecap
+        - randpkt
+        - rawshark
+        - recordercap
+        - sharkd
+        - text2pcap
+        - tshark
+        - wireshark
+      loop_control:
+        loop_var: binary
+      become: true
+
+    - name: Remove desktop icon
+      ansible.builtin.file:
+        path: "/usr/local/share/applications/wireshark.desktop"
+        state: absent
+      become: true
