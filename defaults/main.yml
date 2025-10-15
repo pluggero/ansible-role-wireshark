@@ -1,7 +1,7 @@
 ---
 wireshark_config_dir: "{{ ansible_env.HOME }}/.config/wireshark"
 
-wireshark_version: "4.4.10"
+wireshark_version: "4.6.0"
 wireshark_install_method: "dynamic"
 wireshark_force_install: false
 
