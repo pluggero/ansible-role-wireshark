@@ -15,6 +15,12 @@
       "automergeType": "pr"
     },
     {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["python/cpython"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
       "matchManagers": [
         "custom.regex",
         "ansible-galaxy"
@@ -47,6 +53,18 @@
       ],
       "datasourceTemplate": "gitlab-tags",
       "depNameTemplate": "wireshark/wireshark",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "\\.github/workflows/.+\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "python-version:\\s+[\"'](?<currentValue>\\d+\\.\\d+)[\"']"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "python/cpython",
       "versioningTemplate": "semver"
     }
   ]
