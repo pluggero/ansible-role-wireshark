@@ -35,6 +35,7 @@ wireshark_build_pkgs:
   - desktop-file-utils
   - doxygen
   - git
+  - icu
   - libxslt
   - ninja
   - python
