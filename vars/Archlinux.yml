@@ -28,6 +28,7 @@ wireshark_dep_pkgs:
   - speexdsp
   - zlib-ng
   - zstd
+  - desktop-file-utils
 
 wireshark_build_pkgs:
   - asciidoctor

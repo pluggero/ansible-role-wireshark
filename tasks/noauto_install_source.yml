@@ -106,9 +106,9 @@
             loop_var: binary
           become: true
 
-    - name: Create desktop icon
+    - name: Create desktop file
       block:
-        - name: Ensure desktop icon directory exists
+        - name: Ensure desktop file directory exists
           ansible.builtin.file:
             path: "/usr/local/share/applications"
             state: directory
@@ -117,13 +117,38 @@
             group: root
           become: true
 
-        - name: Create desktop icon
+        - name: Create desktop file
           ansible.builtin.copy:
             src: "wireshark.desktop"
             dest: "/usr/local/share/applications/wireshark.desktop"
             mode: "0644"
             owner: root
             group: root
+          become: true
+
+        - name: Install Wireshark icon to system directory
+          ansible.builtin.copy:
+            src: "{{ wireshark_install_path }}/share/icons/hicolor/128x128/apps/org.wireshark.Wireshark.png"
+            dest: "/usr/share/icons/hicolor/128x128/apps/org.wireshark.Wireshark.png"
+            mode: "0644"
+            owner: root
+            group: root
+            remote_src: true
+          become: true
+          when: wireshark_install_path is defined
+
+        - name: Update desktop database
+          ansible.builtin.command:
+            cmd: update-desktop-database /usr/local/share/applications
+          changed_when: false
+          failed_when: false
+          become: true
+
+        - name: Update icon cache
+          ansible.builtin.command:
+            cmd: gtk-update-icon-cache -f -t /usr/share/icons/hicolor
+          changed_when: false
+          failed_when: false
           become: true
 
     - name: Cleanup build files

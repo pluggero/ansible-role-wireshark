@@ -14,6 +14,7 @@ wireshark_dep_pkgs:
   - qt6-5compat-dev
   - libssh-dev
   - gettext
+  - desktop-file-utils
 
 wireshark_build_pkgs:
   - git
