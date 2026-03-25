@@ -1,20 +1,28 @@
 ---
 - name: Configure dumpcap network capabilities
   block:
-    - name: Determine wireshark binary path
-      ansible.builtin.command:
-        cmd: "which dumpcap"
-      register: wireshark_dumpcap_path
-      changed_when: false
+    - name: Check dumpcap at known paths
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /usr/bin/dumpcap
+        - /usr/local/bin/dumpcap
+      register: wireshark_dumpcap_stat_results
+
+    - name: Set dumpcap path from found location
+      ansible.builtin.set_fact:
+        wireshark_dumpcap_found_path: "{{ item.stat.path }}"
+      loop: "{{ wireshark_dumpcap_stat_results.results }}"
+      when: item.stat.exists
 
     - name: Resolve dumpcap real path (follow symlinks)
       ansible.builtin.command:
-        cmd: "readlink -f {{ wireshark_dumpcap_path.stdout }}"
+        cmd: "readlink -f {{ wireshark_dumpcap_found_path }}"
       register: wireshark_dumpcap_realpath
       changed_when: false
-      when: wireshark_dumpcap_path.stdout | length > 0
+      when: wireshark_dumpcap_found_path is defined
 
-    - name: Check if dumpcap exists
+    - name: Check if dumpcap real path exists
       ansible.builtin.stat:
         path: "{{ wireshark_dumpcap_realpath.stdout }}"
       register: wireshark_dumpcap_stat
@@ -23,14 +31,18 @@
     - name: Debug dumpcap path
       ansible.builtin.debug:
         msg: "dumpcap real path: {{ wireshark_dumpcap_realpath.stdout }}"
-      when: wireshark_dumpcap_stat.stat.exists
+      when:
+        - wireshark_dumpcap_stat is defined
+        - wireshark_dumpcap_stat.stat.exists
 
     - name: Set CAP_NET_RAW capability on dumpcap
       community.general.capabilities:
         path: "{{ wireshark_dumpcap_realpath.stdout }}"
         capability: cap_net_raw=eip
         state: present
-      when: wireshark_dumpcap_stat.stat.exists
+      when:
+        - wireshark_dumpcap_stat is defined
+        - wireshark_dumpcap_stat.stat.exists
       become: true
 
     - name: Set CAP_NET_ADMIN capability on dumpcap
@@ -38,5 +50,7 @@
         path: "{{ wireshark_dumpcap_realpath.stdout }}"
         capability: cap_net_admin=eip
         state: present
-      when: wireshark_dumpcap_stat.stat.exists
+      when:
+        - wireshark_dumpcap_stat is defined
+        - wireshark_dumpcap_stat.stat.exists
       become: true
