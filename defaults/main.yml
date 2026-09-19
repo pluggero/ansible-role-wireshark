@@ -18,3 +18,12 @@ wireshark_users:
 # Build configuration
 wireshark_cmake_build_type: "RelWithDebInfo"
 wireshark_cmake_options: []
+
+# Hicolor icon sizes installed by Wireshark's CMake build
+wireshark_icon_sizes:
+  - 16
+  - 24
+  - 32
+  - 48
+  - 64
+  - 256

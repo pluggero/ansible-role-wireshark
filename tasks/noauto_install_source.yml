@@ -126,14 +126,30 @@
             group: root
           become: true
 
+        - name: Ensure hicolor icon directories exist
+          ansible.builtin.file:
+            path: "/usr/share/icons/hicolor/{{ icon_size }}x{{ icon_size }}/apps"
+            state: directory
+            mode: "0755"
+            owner: root
+            group: root
+          loop: "{{ wireshark_icon_sizes }}"
+          loop_control:
+            loop_var: icon_size
+          become: true
+          when: wireshark_install_path is defined
+
         - name: Install Wireshark icon to system directory
           ansible.builtin.copy:
-            src: "{{ wireshark_install_path }}/share/icons/hicolor/128x128/apps/org.wireshark.Wireshark.png"
-            dest: "/usr/share/icons/hicolor/128x128/apps/org.wireshark.Wireshark.png"
+            src: "{{ wireshark_install_path }}/share/icons/hicolor/{{ icon_size }}x{{ icon_size }}/apps/org.wireshark.Wireshark.png"
+            dest: "/usr/share/icons/hicolor/{{ icon_size }}x{{ icon_size }}/apps/org.wireshark.Wireshark.png"
             mode: "0644"
             owner: root
             group: root
             remote_src: true
+          loop: "{{ wireshark_icon_sizes }}"
+          loop_control:
+            loop_var: icon_size
           become: true
           when: wireshark_install_path is defined
 
