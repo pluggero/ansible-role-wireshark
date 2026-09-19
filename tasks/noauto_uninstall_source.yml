@@ -47,8 +47,11 @@
 
     - name: Remove Wireshark icon from system directory
       ansible.builtin.file:
-        path: "/usr/share/icons/hicolor/128x128/apps/org.wireshark.Wireshark.png"
+        path: "/usr/share/icons/hicolor/{{ icon_size }}x{{ icon_size }}/apps/org.wireshark.Wireshark.png"
         state: absent
+      loop: "{{ wireshark_icon_sizes }}"
+      loop_control:
+        loop_var: icon_size
       become: true
       failed_when: false
 
